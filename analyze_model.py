@@ -204,7 +204,14 @@ def main():
     # Get current directory
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
     dataset_dir = current_dir / "HackByte_Dataset"
-    data_yaml = str(dataset_dir / "yolo_params.yaml")
+    yaml_path = current_dir / "yolo_params.yaml"
+    
+    if not yaml_path.exists():
+        print(f"Error: YAML file {yaml_path} not found")
+        print("Please make sure the yolo_params.yaml file exists in the main directory")
+        return
+        
+    data_yaml = str(yaml_path)
     
     # Check if the model was provided directly
     if args.model and os.path.exists(args.model):
@@ -281,6 +288,7 @@ def main():
                     sample_images = []
             else:
                 print("Warning: 'test' field not found in YAML config")
+                sample_images = []
                 sample_images = []
     except Exception as e:
         print(f"Error reading YAML file: {e}")

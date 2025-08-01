@@ -21,21 +21,33 @@ def train_model(epochs=25, img_size=416, batch_size=8, patience=10):
     """
     print("Starting model training...")
     
-    # Get the current directory where the script is located
-    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    dataset_dir = current_dir / "HackByte_Dataset"
-    
-    # Load base YOLOv8 model
-    model = YOLO("yolov8m.pt")  # Using small model for better performance on i5 CPU
-    
-    # Define training arguments with optimized hyperparameters
-    args = {
-        "data": str(dataset_dir / "yolo_params.yaml"),
-        "epochs": epochs,
-        "imgsz": img_size,
-        "batch": batch_size,
-        "patience": patience,
-        "device": 'cpu',  # Force CPU usage for i5 1335U
+    try:
+        # Get the current directory where the script is located
+        current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+        dataset_dir = current_dir / "HackByte_Dataset"
+        
+        # Check if dataset exists
+        if not dataset_dir.exists():
+            print(f"Error: Dataset directory {dataset_dir} not found")
+            return None, None
+            
+        # Check if yolo_params.yaml exists
+        yaml_path = current_dir / "yolo_params.yaml"
+        if not yaml_path.exists():
+            print(f"Error: YAML file {yaml_path} not found")
+            return None, None
+        
+        # Load base YOLOv8 model
+        model = YOLO("yolov8m.pt")  # Using small model for better performance on i5 CPU
+        
+        # Define training arguments with optimized hyperparameters
+        args = {
+            "data": str(yaml_path),
+            "epochs": epochs,
+            "imgsz": img_size,
+            "batch": batch_size,
+            "patience": patience,
+            "device": 'cpu',  # Force CPU usage for i5 1335U
         # Hyperparameters for better performance in challenging conditions (optimized for CPU)
         "mosaic": 0.5,  # Reduced mosaic augmentation
         "mixup": 0.1,  # Reduced mixup augmentation
@@ -61,13 +73,18 @@ def train_model(epochs=25, img_size=416, batch_size=8, patience=10):
         "single_cls": False,  # Train multi-class data as single-class
     }
     
-    # Train the model
-    results = model.train(**args)
-    
-    print(f"Model training completed. Results saved to {results}")
-    
-    return model, results
-
+        # Train the model
+        results = model.train(**args)
+        
+        print(f"Model training completed. Results saved to {results}")
+        
+        return model, results
+    except Exception as e:
+        print(f"Error during model training: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+        
 def evaluate_model():
     """
     Evaluate the trained model on the test set and show metrics
@@ -80,10 +97,21 @@ def evaluate_model():
     # Get the current directory
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
     dataset_dir = current_dir / "HackByte_Dataset"
-    data_yaml = str(dataset_dir / "yolo_params.yaml")
+    yaml_path = current_dir / "yolo_params.yaml"
+    
+    if not yaml_path.exists():
+        print(f"Error: YAML file {yaml_path} not found")
+        return None
+        
+    data_yaml = str(yaml_path)
     
     # Find the best trained model
-    detect_path = dataset_dir / "runs" / "detect"
+    detect_path = current_dir / "runs" / "detect"
+    
+    if not detect_path.exists():
+        print("No 'runs/detect' directory found. Please train a model first.")
+        return None
+        
     train_folders = [f for f in os.listdir(detect_path) if os.path.isdir(detect_path / f) and f.startswith("train")]
     
     if not train_folders:
@@ -93,6 +121,10 @@ def evaluate_model():
     # Get the latest training run
     latest_run = sorted(train_folders)[-1]
     model_path = detect_path / latest_run / "weights" / "best.pt"
+    
+    if not model_path.exists():
+        print(f"Model weights not found at {model_path}. Please train a model first.")
+        return None
     
     # Load the model
     model = YOLO(model_path)
@@ -116,9 +148,19 @@ def visualize_results(n_samples=5):
     # Get the current directory
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
     dataset_dir = current_dir / "HackByte_Dataset"
+    yaml_path = current_dir / "yolo_params.yaml"
+    
+    if not yaml_path.exists():
+        print(f"Error: YAML file {yaml_path} not found")
+        return
     
     # Find the best trained model
-    detect_path = dataset_dir / "runs" / "detect"
+    detect_path = current_dir / "runs" / "detect"
+    
+    if not detect_path.exists():
+        print("No 'runs/detect' directory found. Please train a model first.")
+        return
+        
     train_folders = [f for f in os.listdir(detect_path) if os.path.isdir(detect_path / f) and f.startswith("train")]
     
     if not train_folders:
@@ -129,16 +171,35 @@ def visualize_results(n_samples=5):
     latest_run = sorted(train_folders)[-1]
     model_path = detect_path / latest_run / "weights" / "best.pt"
     
+    if not model_path.exists():
+        print(f"Model weights not found at {model_path}. Please train a model first.")
+        return
+        
     # Load the model
     model = YOLO(model_path)
     
     # Get test images
-    with open(dataset_dir / "yolo_params.yaml", 'r') as file:
-        data = yaml.safe_load(file)
-        test_dir = Path(dataset_dir) / data['test'] / 'images'
+    try:
+        with open(yaml_path, 'r') as file:
+            data = yaml.safe_load(file)
+            if 'test' in data and data['test']:
+                test_dir = Path(dataset_dir) / data['test'] / 'images'
+                if not test_dir.exists():
+                    print(f"Test directory {test_dir} does not exist")
+                    return
+            else:
+                print("No 'test' field found in yolo_params.yaml")
+                return
+    except Exception as e:
+        print(f"Error reading YAML file: {e}")
+        return
     
     # Get random sample of test images
     test_images = list(test_dir.glob('*.png'))
+    if not test_images:
+        print(f"No PNG images found in test directory {test_dir}")
+        return
+        
     np.random.shuffle(test_images)
     sample_images = test_images[:n_samples]
     
@@ -174,35 +235,40 @@ def main():
     """
     print("Starting YOLOv8 object detection for safety equipment...")
     
-    # Step 1: Train the model (reduced epochs for i5 1335U CPU)
-    train_model(epochs=20)
-    
-    # Step 2: Evaluate the model
-    metrics = evaluate_model()
-    
-    # Step 3: Visualize some results
-    visualize_results(n_samples=6)
-    
-    # Print final metrics
-    if metrics:
-        print("\nFinal evaluation metrics:")
-        print(f"mAP50: {metrics.box.map50:.4f}")
-        print(f"mAP50-95: {metrics.box.map:.4f}")
-        print(f"Precision: {metrics.box.mp:.4f}")
-        print(f"Recall: {metrics.box.mr:.4f}")
+    try:
+        # Step 1: Train the model (reduced epochs for i5 1335U CPU)
+        model, results = train_model(epochs=20)
         
-        # Save metrics to file
-        current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-        output_dir = current_dir / "results"
-        output_dir.mkdir(exist_ok=True)
+        # Step 2: Evaluate the model
+        metrics = evaluate_model()
         
-        with open(output_dir / "metrics.txt", "w") as f:
-            f.write(f"mAP50: {metrics.box.map50:.4f}\n")
-            f.write(f"mAP50-95: {metrics.box.map:.4f}\n")
-            f.write(f"Precision: {metrics.box.mp:.4f}\n")
-            f.write(f"Recall: {metrics.box.mr:.4f}\n")
-    
-    print("YOLOv8 object detection pipeline completed!")
+        # Step 3: Visualize some results
+        visualize_results(n_samples=6)
+        
+        # Print final metrics
+        if metrics:
+            print("\nFinal evaluation metrics:")
+            print(f"mAP50: {metrics.box.map50:.4f}")
+            print(f"mAP50-95: {metrics.box.map:.4f}")
+            print(f"Precision: {metrics.box.mp:.4f}")
+            print(f"Recall: {metrics.box.mr:.4f}")
+            
+            # Save metrics to file
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            output_dir = current_dir / "results"
+            output_dir.mkdir(exist_ok=True)
+            
+            with open(output_dir / "metrics.txt", "w") as f:
+                f.write(f"mAP50: {metrics.box.map50:.4f}\n")
+                f.write(f"mAP50-95: {metrics.box.map:.4f}\n")
+                f.write(f"Precision: {metrics.box.mp:.4f}\n")
+                f.write(f"Recall: {metrics.box.mr:.4f}\n")
+        
+        print("YOLOv8 object detection pipeline completed!")
+    except Exception as e:
+        print(f"An error occurred during execution: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()

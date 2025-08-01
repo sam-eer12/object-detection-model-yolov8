@@ -6,7 +6,7 @@ import yaml
 import argparse
 import glob
 
-def predict_and_save(model, image_path, output_dir, conf_threshold=0.5):
+def predict_and_save(model, image_path, output_dir, conf_threshold=0.5, silent=False):
     """
     Perform prediction on an image and save the results
     
@@ -15,6 +15,7 @@ def predict_and_save(model, image_path, output_dir, conf_threshold=0.5):
         image_path: Path to the image
         output_dir: Directory to save results
         conf_threshold: Confidence threshold for predictions
+        silent: If True, don't print results (for batch processing)
     """
     # Create output directories if they don't exist
     images_output_dir = output_dir / 'images'
@@ -47,18 +48,19 @@ def predict_and_save(model, image_path, output_dir, conf_threshold=0.5):
             # Write bbox information in the format [class_id, x_center, y_center, width, height]
             f.write(f"{cls_id} {x_center} {y_center} {width} {height}\n")
     
-    # Print detection information
-    detections = []
-    for box in result.boxes:
-        cls_id = int(box.cls)
-        class_name = model.names[cls_id]
-        confidence = float(box.conf)
-        detections.append(f"{class_name} ({confidence:.2f})")
-    
-    if detections:
-        print(f"Detected: {', '.join(detections)}")
-    else:
-        print("No objects detected")
+    # Print detection information if not in silent mode
+    if not silent:
+        detections = []
+        for box in result.boxes:
+            cls_id = int(box.cls)
+            class_name = model.names[cls_id]
+            confidence = float(box.conf)
+            detections.append(f"{class_name} ({confidence:.2f})")
+        
+        if detections:
+            print(f"Detected: {', '.join(detections)}")
+        else:
+            print("No objects detected")
     
     return output_path_img, output_path_txt
 
@@ -114,7 +116,7 @@ def main():
         with open(this_dir / 'yolo_params.yaml', 'r') as file:
             data = yaml.safe_load(file)
             if 'test' in data and data['test'] is not None:
-                test_dir = Path(data['test']) / 'images'
+                test_dir = Path(this_dir) / "HackByte_Dataset" / data['test'] / 'images'
                 if not test_dir.exists() or not test_dir.is_dir():
                     print(f"Error: Test directory {test_dir} does not exist or is not a directory")
                     return
@@ -127,21 +129,76 @@ def main():
                     print(f"No image files found in {test_dir}")
                     return
                 
-                for img_path in image_files:
-                    print(f"Predicting on {img_path.name}...")
-                    output_img, output_txt = predict_and_save(model, img_path, output_dir, args.conf)
-                    print(f"Saved prediction to {output_img}")
-                    print("\n")
-                    print("\n")
+                # Initialize results list for table
+                prediction_results = []
+                total_files = len(image_files)
+                
+                # Display loading animation
+                import time
+                import sys
+                
+                for idx, img_path in enumerate(image_files):
+                    # Update loading animation
+                    progress = (idx + 1) / total_files * 100
+                    loading_bar = "█" * int(progress // 2) + " " * (50 - int(progress // 2))
+                    sys.stdout.write(f"\r[{loading_bar}] {progress:.1f}% | Processing: {img_path.name}")
+                    sys.stdout.flush()
+                    
+                    # Run prediction
+                    output_img, output_txt = predict_and_save(model, img_path, output_dir, args.conf, silent=True)
+                    
+                    # Get detection results for table
+                    detections = []
+                    for box in model.predict(img_path, conf=args.conf)[0].boxes:
+                        cls_id = int(box.cls)
+                        class_name = model.names[cls_id]
+                        confidence = float(box.conf)
+                        detections.append((class_name, confidence))
+                    
+                    # Store results
+                    prediction_results.append({
+                        "image": img_path.name,
+                        "detections": detections,
+                        "output_path": output_img
+                    })
+                
+                # Complete the loading bar
+                sys.stdout.write("\r" + " " * 100 + "\r")
+                sys.stdout.flush()
+                
+                # Display results table
+                print("\n\n" + "="*80)
+                print(f"{'IMAGE NAME':<30} | {'DETECTIONS':<45} | {'CONFIDENCE'}")
+                print("="*80)
+                
+                for result in prediction_results:
+                    if result["detections"]:
+                        for i, (class_name, conf) in enumerate(result["detections"]):
+                            if i == 0:
+                                print(f"{result['image']:<30} | {class_name:<45} | {conf:.2f}")
+                            else:
+                                print(f"{'':<30} | {class_name:<45} | {conf:.2f}")
+                    else:
+                        print(f"{result['image']:<30} | {'No objects detected':<45} | -")
+                    print("-"*80)
                 
                 # Run validation
                 print("\nRunning validation on test set...")
-                metrics = model.val(data=this_dir / 'yolo_params.yaml', split="test")
-                print(f"\nTest Results:")
-                print(f"mAP50: {metrics.box.map50:.4f}")
-                print(f"mAP50-95: {metrics.box.map:.4f}")
-                print(f"Precision: {metrics.box.mp:.4f}")
-                print(f"Recall: {metrics.box.mr:.4f}")
+                try:
+                    metrics = model.val(data=this_dir / 'yolo_params.yaml', split="test")
+                    print("\n" + "="*80)
+                    print(f"TEST SET PERFORMANCE METRICS")
+                    print("="*80)
+                    print(f"mAP50:     {metrics.box.map50:.4f}")
+                    print(f"mAP50-95:  {metrics.box.map:.4f}")
+                    print(f"Precision: {metrics.box.mp:.4f}")
+                    print(f"Recall:    {metrics.box.mr:.4f}")
+                    print("="*80)
+                except Exception as e:
+                    print(f"Error during validation: {e}")
+                    print("Make sure the dataset paths in yolo_params.yaml are correct")
+                
+                print(f"\nAll predictions saved to {output_dir}")
             else:
                 print("No test field found in yolo_params.yaml")
                 return
@@ -155,7 +212,30 @@ def main():
             
             print(f"Predicting on single image: {input_path}")
             output_img, output_txt = predict_and_save(model, input_path, output_dir, args.conf)
-            print(f"Saved prediction to {output_img}")
+            
+            # Display result in table format
+            print("\n" + "="*80)
+            print(f"{'IMAGE NAME':<30} | {'DETECTIONS':<45} | {'CONFIDENCE'}")
+            print("="*80)
+            
+            # Get detections for table
+            detections = []
+            for box in model.predict(input_path, conf=args.conf)[0].boxes:
+                cls_id = int(box.cls)
+                class_name = model.names[cls_id]
+                confidence = float(box.conf)
+                detections.append((class_name, confidence))
+            
+            if detections:
+                for i, (class_name, conf) in enumerate(detections):
+                    if i == 0:
+                        print(f"{input_path.name:<30} | {class_name:<45} | {conf:.2f}")
+                    else:
+                        print(f"{'':<30} | {class_name:<45} | {conf:.2f}")
+            else:
+                print(f"{input_path.name:<30} | {'No objects detected':<45} | -")
+            print("="*80)
+            print(f"\nSaved prediction to {output_img}")
             
         elif input_path.is_dir():
             # Directory of images
@@ -166,10 +246,60 @@ def main():
                 print(f"No image files found in {input_path}")
                 return
             
-            for img_path in image_files:
-                print(f"Predicting on {img_path.name}...")
-                output_img, output_txt = predict_and_save(model, img_path, output_dir, args.conf)
-                print(f"Saved prediction to {output_img}")
+            # Initialize results list for table
+            prediction_results = []
+            total_files = len(image_files)
+            
+            # Display loading animation
+            import time
+            import sys
+            
+            for idx, img_path in enumerate(image_files):
+                # Update loading animation
+                progress = (idx + 1) / total_files * 100
+                loading_bar = "█" * int(progress // 2) + " " * (50 - int(progress // 2))
+                sys.stdout.write(f"\r[{loading_bar}] {progress:.1f}% | Processing: {img_path.name}")
+                sys.stdout.flush()
+                
+                # Run prediction
+                output_img, output_txt = predict_and_save(model, img_path, output_dir, args.conf, silent=True)
+                
+                # Get detection results for table
+                detections = []
+                for box in model.predict(img_path, conf=args.conf)[0].boxes:
+                    cls_id = int(box.cls)
+                    class_name = model.names[cls_id]
+                    confidence = float(box.conf)
+                    detections.append((class_name, confidence))
+                
+                # Store results
+                prediction_results.append({
+                    "image": img_path.name,
+                    "detections": detections,
+                    "output_path": output_img
+                })
+            
+            # Complete the loading bar
+            sys.stdout.write("\r" + " " * 100 + "\r")
+            sys.stdout.flush()
+            
+            # Display results table
+            print("\n\n" + "="*80)
+            print(f"{'IMAGE NAME':<30} | {'DETECTIONS':<45} | {'CONFIDENCE'}")
+            print("="*80)
+            
+            for result in prediction_results:
+                if result["detections"]:
+                    for i, (class_name, conf) in enumerate(result["detections"]):
+                        if i == 0:
+                            print(f"{result['image']:<30} | {class_name:<45} | {conf:.2f}")
+                        else:
+                            print(f"{'':<30} | {class_name:<45} | {conf:.2f}")
+                else:
+                    print(f"{result['image']:<30} | {'No objects detected':<45} | -")
+                print("-"*80)
+                
+            print(f"\nAll predictions saved to {output_dir}")
         else:
             print(f"Error: Input path {input_path} does not exist")
             return

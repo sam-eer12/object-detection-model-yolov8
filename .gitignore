@@ -20,6 +20,10 @@ wheels/
 .installed.cfg
 *.egg
 
+#dataset
+data/
+HackByte_Dataset/
+
 # Virtual environment
 .env
 .venv
@@ -28,7 +32,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-data/
 
 # Model checkpoints and runs
 runs/
@@ -40,7 +43,7 @@ runs/
 
 # Results and output directories
 results/
-
+predictions/
 output/
 logs/
 

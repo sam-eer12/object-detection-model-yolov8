@@ -20,6 +20,35 @@ The model parameters have been adjusted to run efficiently on an i5 1335U CPU:
 - Reduced data augmentation complexity
 - Early stopping with patience=10
 
+## Project Structure
+
+```
+.
+├── data/   (from the falcon dataset moe to fata folder here)
+│   ├── test/
+│   ├── train/
+│   └── val/
+├── HackByte_Dataset/
+│   ├── ENV_SETUP/
+│   ├── classes.txt
+│   ├── predict.py
+│   ├── train.py
+│   └── visualize.py
+├── predictions/
+│   ├── images/
+│   └── labels/
+├── runs/
+│   └── detect/
+├── test_case/
+├── analyze_model.py
+├── predict_custom.py
+├── README.md
+├── sample.py
+├── yolo_params.yaml
+├── yolo_safety_detector.bat
+└── yolov8m.pt
+```
+
 ## Running the Model
 
 1. Use the `run_model_i5_optimized.bat` file to run the model with different settings:
