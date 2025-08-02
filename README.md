@@ -49,9 +49,17 @@ The model parameters have been adjusted to run efficiently on an i5 1335U CPU:
 └── yolov8m.pt
 ```
 
+## Required Libraries
+
+- PyTorch
+- Torchvision
+- CUDA 11.8
+- Ultralytics
+- OpenCV
+
 ## Running the Model
 
-1. Use the `run_model_i5_optimized.bat` file to run the model with different settings:
+1. Use the `yolo_safety_detector.bat` file to run the model with different settings:
    - Default setting (20 epochs)
    - Quick test (5 epochs)
    - Evaluation only (skip training)
