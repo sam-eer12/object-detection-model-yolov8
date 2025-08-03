@@ -24,7 +24,7 @@ The model parameters have been adjusted to run efficiently on an i5 1335U CPU:
 
 ```
 .
-├── data/   (from the falcon dataset moe to fata folder here)
+├── data/   (from the falcon dataset move to data folder here)
 │   ├── test/
 │   ├── train/
 │   └── val/
