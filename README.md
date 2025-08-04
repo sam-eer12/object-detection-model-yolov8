@@ -56,6 +56,9 @@ The model parameters have been adjusted to run efficiently on an i5 1335U CPU:
 - CUDA 11.8
 - Ultralytics
 - OpenCV
+```
+   pip install torch torchvision ultralytics opencv-python
+```
 
 ## Running the Model
 
