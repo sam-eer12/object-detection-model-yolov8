@@ -23,6 +23,7 @@ wheels/
 #dataset
 data/
 HackByte_Dataset/
+safety_equipment_detector/examples/
 
 # Virtual environment
 .env

@@ -1,0 +1,5 @@
+train: HackByte_Dataset/data/train/images
+val: HackByte_Dataset/data/val/images
+test: HackByte_Dataset/data/test
+nc: 3
+names: ['FireExtinguisher', 'ToolBox', 'OxygenTank']

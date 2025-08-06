@@ -221,13 +221,16 @@ def main():
         results_dir = os.path.dirname(os.path.dirname(model_path))
         results_path = os.path.join(results_dir, "results.csv")
     else:
-        # Check for runs directory
-        runs_path = dataset_dir / "runs"
+        # Check for runs directory - look in the current directory first, not in dataset_dir
+        runs_path = current_dir / "runs"
         if not os.path.exists(runs_path):
-            print(f"Error: No 'runs' directory found at {runs_path}")
-            print("Please train a model first using sample.py or provide a model path with --model")
-            print("Example: python analyze_model.py --model path/to/best.pt")
-            return
+            # If not found, try in dataset_dir as fallback
+            runs_path = dataset_dir / "runs"
+            if not os.path.exists(runs_path):
+                print(f"Error: No 'runs' directory found at {current_dir}/runs or {dataset_dir}/runs")
+                print("Please train a model first using sample.py or provide a model path with --model")
+                print("Example: python analyze_model.py --model path/to/best.pt")
+                return
         
         # Check for detect directory
         detect_path = runs_path / "detect"
@@ -273,22 +276,34 @@ def main():
         with open(data_yaml, 'r') as file:
             data = yaml.safe_load(file)
             if 'test' in data and data['test']:
-                test_dir = Path(dataset_dir) / data['test'] / 'images'
+                test_dir_path = data['test']
+                # Try to find test images in two possible locations
+                test_dir1 = Path(dataset_dir) / test_dir_path / 'images'
+                test_dir2 = Path(current_dir) / test_dir_path / 'images'
+                
+                # Check which path exists
+                if os.path.exists(test_dir1):
+                    test_dir = test_dir1
+                elif os.path.exists(test_dir2):
+                    test_dir = test_dir2
+                else:
+                    # Try directly using the path from YAML (might be absolute)
+                    test_dir = Path(test_dir_path) / 'images'
+                
                 if os.path.exists(test_dir):
                     # Get sample test images
-                    test_images = list(test_dir.glob('*.png'))
+                    test_images = list(test_dir.glob('*.png')) + list(test_dir.glob('*.jpg'))
                     if test_images:
                         np.random.shuffle(test_images)
                         sample_images = [str(img) for img in test_images[:5]]
                     else:
-                        print(f"Warning: No PNG images found in {test_dir}")
+                        print(f"Warning: No images found in {test_dir}")
                         sample_images = []
                 else:
                     print(f"Warning: Test directory {test_dir} does not exist")
                     sample_images = []
             else:
                 print("Warning: 'test' field not found in YAML config")
-                sample_images = []
                 sample_images = []
     except Exception as e:
         print(f"Error reading YAML file: {e}")

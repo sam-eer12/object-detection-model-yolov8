@@ -161,7 +161,7 @@ echo.
 echo Running prediction on image: %image_path%
 echo Using confidence threshold: %conf%
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\predict_custom.py" --input "%image_path%" --conf %conf%
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\predict_custom.py" --input "%image_path%" --conf %conf%
 echo.
 echo Prediction completed!
 echo.
@@ -184,7 +184,7 @@ echo.
 echo Running predictions on all images in: %folder_path%
 echo Using confidence threshold: %conf%
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\predict_custom.py" --input "%folder_path%" --conf %conf%
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\predict_custom.py" --input "%folder_path%" --conf %conf%
 echo.
 echo Predictions completed!
 echo.
@@ -226,7 +226,7 @@ echo Running analysis to generate training metrics plots...
 echo.
 echo If you see errors about missing files, please train a model first.
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --metrics
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --metrics --model "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\runs\detect\train2\weights\best.pt"
 echo.
 pause
 goto VISUALIZE
@@ -237,7 +237,7 @@ echo Running analysis to generate sample predictions...
 echo.
 echo If you see errors about missing files, please train a model first.
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --compare
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --compare --model "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\runs\detect\train2\weights\best.pt"
 echo.
 pause
 goto VISUALIZE
@@ -248,7 +248,7 @@ echo Running analysis to generate class performance metrics...
 echo.
 echo If you see errors about missing files, please train a model first.
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --analyze
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --analyze --model "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\runs\detect\train2\weights\best.pt"
 echo.
 pause
 goto VISUALIZE
@@ -259,7 +259,7 @@ echo Running analysis to generate confusion matrix...
 echo.
 echo If you see errors about missing files, please train a model first.
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --confusion
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --confusion --model "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\runs\detect\train2\weights\best.pt"
 echo.
 pause
 goto VISUALIZE
@@ -270,7 +270,7 @@ echo Running all analyses...
 echo.
 echo If you see errors about missing files, please train a model first.
 echo.
-"C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py"
+call "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\.venv\Scripts\python.exe" "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\analyze_model.py" --model "C:\Users\SAMEER GUPTA\Downloads\hackathon prep\runs\detect\train2\weights\best.pt"
 echo.
 pause
 goto VISUALIZE
